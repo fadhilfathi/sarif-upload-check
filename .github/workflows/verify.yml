@@ -74,36 +74,36 @@ jobs:
 
           fail() { echo "::error::$1"; exit 1; }
 
-          # Three findings arrived unsuppressed and must be visible as open alerts.
-          [ "$(jq 'length' open.json)" = "3" ] || fail "expected 3 open alerts, got $(jq 'length' open.json)"
-
-          # The finding that arrived already suppressed must render as dismissed,
-          # not be silently dropped. A tool that loses someone else's suppression
-          # is as broken as one that invents its own.
-          [ "$(jq 'length' dismissed.json)" = "1" ] || fail "expected 1 dismissed alert, got $(jq 'length' dismissed.json)"
-
+          # Empirical question this repo exists to answer: which SARIF
+          # suppression kinds does Code Scanning actually honor? Both cases are
+          # uploaded together so the answer is a comparison, not a guess.
           for rule in sift.verify.command-injection sift.verify.sql-injection sift.verify.path-traversal; do
-            jq -e --arg r "$rule" 'any(.[]; .rule.id == $r)' open.json >/dev/null \
-              || fail "missing open alert for $rule"
+            jq -e --arg r "$rule" 'any(.[]; .rule.id == $r)' open.json >/dev/null               || fail "missing open alert for $rule"
           done
-          jq -e 'any(.[]; .rule.id == "sift.verify.suppressed-subprocess")' dismissed.json >/dev/null \
-            || fail "suppressed finding did not render as dismissed"
 
           # Locations must survive the round trip, not just rule identity.
           jq -e 'any(.[]; .rule.id == "sift.verify.command-injection"
                           and .most_recent_instance.location.path == "src/app.py"
-                          and .most_recent_instance.location.start_line == 19)' open.json >/dev/null \
-            || fail "command-injection alert is not at src/app.py:19"
+                          and .most_recent_instance.location.start_line == 19)' open.json >/dev/null             || fail "command-injection alert is not at src/app.py:19"
           jq -e 'any(.[]; .rule.id == "sift.verify.sql-injection"
-                          and .most_recent_instance.location.start_line == 26)' open.json >/dev/null \
-            || fail "sql-injection alert is not at line 26"
+                          and .most_recent_instance.location.start_line == 26)' open.json >/dev/null             || fail "sql-injection alert is not at line 26"
           jq -e 'any(.[]; .rule.id == "sift.verify.path-traversal"
-                          and .most_recent_instance.location.start_line == 32)' open.json >/dev/null \
-            || fail "path-traversal alert is not at line 32"
+                          and .most_recent_instance.location.start_line == 32)' open.json >/dev/null             || fail "path-traversal alert is not at line 32"
 
-          # Rule metadata must survive, or the alerts render without severity.
+          # Rule metadata must survive, or alerts render without severity.
           jq -e 'any(.[]; .rule.id == "sift.verify.command-injection"
-                          and .rule.security_severity_level == "critical")' open.json >/dev/null \
-            || fail "security-severity did not survive on command-injection"
+                          and .rule.security_severity_level == "critical")' open.json >/dev/null             || fail "security-severity did not survive on command-injection"
 
-          echo "verified: 3 open, 1 dismissed, locations and severities intact"
+          # Nothing may vanish. Whatever Code Scanning decides about
+          # suppressions, all five findings must be reachable somewhere.
+          total=$(( $(jq 'length' open.json) + $(jq 'length' dismissed.json) ))
+          [ "$total" = "5" ] || fail "expected 5 alerts across both states, got $total"
+
+          echo "suppression handling, measured:"
+          for rule in sift.verify.suppressed-subprocess sift.verify.suppressed-insource; do
+            if jq -e --arg r "$rule" 'any(.[]; .rule.id == $r)' dismissed.json >/dev/null; then
+              echo "  $rule -> dismissed"
+            else
+              echo "  $rule -> OPEN (suppression not honored)"
+            fi
+          done

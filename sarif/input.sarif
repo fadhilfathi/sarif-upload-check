@@ -12,13 +12,20 @@
             {
               "id": "sift.verify.command-injection",
               "name": "CommandInjection",
-              "shortDescription": { "text": "User input reaches a shell command" },
+              "shortDescription": {
+                "text": "User input reaches a shell command"
+              },
               "fullDescription": {
                 "text": "request.args flows into subprocess with shell=True, allowing arbitrary command execution."
               },
-              "defaultConfiguration": { "level": "error" },
+              "defaultConfiguration": {
+                "level": "error"
+              },
               "properties": {
-                "tags": ["security", "external/cwe/cwe-078"],
+                "tags": [
+                  "security",
+                  "external/cwe/cwe-078"
+                ],
                 "precision": "high",
                 "security-severity": "9.8"
               }
@@ -26,13 +33,20 @@
             {
               "id": "sift.verify.sql-injection",
               "name": "SqlInjection",
-              "shortDescription": { "text": "User input interpolated into SQL" },
+              "shortDescription": {
+                "text": "User input interpolated into SQL"
+              },
               "fullDescription": {
                 "text": "request.args is formatted directly into a SQL string rather than parameterized."
               },
-              "defaultConfiguration": { "level": "error" },
+              "defaultConfiguration": {
+                "level": "error"
+              },
               "properties": {
-                "tags": ["security", "external/cwe/cwe-089"],
+                "tags": [
+                  "security",
+                  "external/cwe/cwe-089"
+                ],
                 "precision": "high",
                 "security-severity": "8.8"
               }
@@ -40,10 +54,17 @@
             {
               "id": "sift.verify.path-traversal",
               "name": "PathTraversal",
-              "shortDescription": { "text": "User input reaches a filesystem path" },
-              "defaultConfiguration": { "level": "warning" },
+              "shortDescription": {
+                "text": "User input reaches a filesystem path"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
               "properties": {
-                "tags": ["security", "external/cwe/cwe-022"],
+                "tags": [
+                  "security",
+                  "external/cwe/cwe-022"
+                ],
                 "precision": "medium",
                 "security-severity": "7.5"
               }
@@ -51,14 +72,41 @@
             {
               "id": "sift.verify.suppressed-subprocess",
               "name": "SuppressedSubprocess",
-              "shortDescription": { "text": "subprocess call, already reviewed" },
-              "defaultConfiguration": { "level": "warning" },
-              "properties": { "tags": ["security"], "precision": "low" }
+              "shortDescription": {
+                "text": "subprocess call, already reviewed"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "tags": [
+                  "security"
+                ],
+                "precision": "low"
+              }
+            },
+            {
+              "id": "sift.verify.suppressed-insource",
+              "name": "SuppressedInSource",
+              "shortDescription": {
+                "text": "subprocess call, suppressed with kind inSource"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "tags": [
+                  "security"
+                ],
+                "precision": "low"
+              }
             }
           ]
         }
       },
-      "automationDetails": { "id": "sift-verification/python/" },
+      "automationDetails": {
+        "id": "sift-verification/python/"
+      },
       "results": [
         {
           "ruleId": "sift.verify.command-injection",
@@ -70,18 +118,24 @@
           "locations": [
             {
               "physicalLocation": {
-                "artifactLocation": { "uri": "src/app.py" },
+                "artifactLocation": {
+                  "uri": "src/app.py"
+                },
                 "region": {
                   "startLine": 19,
                   "startColumn": 12,
                   "endLine": 19,
                   "endColumn": 51,
-                  "snippet": { "text": "    return subprocess.check_output(cmd, shell=True)" }
+                  "snippet": {
+                    "text": "    return subprocess.check_output(cmd, shell=True)"
+                  }
                 }
               }
             }
           ],
-          "partialFingerprints": { "primaryLocationLineHash": "a1b2c3d4e5f60718:1" },
+          "partialFingerprints": {
+            "primaryLocationLineHash": "a1b2c3d4e5f60718:1"
+          },
           "codeFlows": [
             {
               "threadFlows": [
@@ -89,19 +143,33 @@
                   "locations": [
                     {
                       "location": {
-                        "message": { "text": "source: untrusted query parameter" },
+                        "message": {
+                          "text": "source: untrusted query parameter"
+                        },
                         "physicalLocation": {
-                          "artifactLocation": { "uri": "src/app.py" },
-                          "region": { "startLine": 18, "startColumn": 11 }
+                          "artifactLocation": {
+                            "uri": "src/app.py"
+                          },
+                          "region": {
+                            "startLine": 18,
+                            "startColumn": 11
+                          }
                         }
                       }
                     },
                     {
                       "location": {
-                        "message": { "text": "sink: shell command" },
+                        "message": {
+                          "text": "sink: shell command"
+                        },
                         "physicalLocation": {
-                          "artifactLocation": { "uri": "src/app.py" },
-                          "region": { "startLine": 19, "startColumn": 12 }
+                          "artifactLocation": {
+                            "uri": "src/app.py"
+                          },
+                          "region": {
+                            "startLine": 19,
+                            "startColumn": 12
+                          }
                         }
                       }
                     }
@@ -115,11 +183,15 @@
           "ruleId": "sift.verify.sql-injection",
           "ruleIndex": 1,
           "level": "error",
-          "message": { "text": "User input from request.args is interpolated into a SQL query." },
+          "message": {
+            "text": "User input from request.args is interpolated into a SQL query."
+          },
           "locations": [
             {
               "physicalLocation": {
-                "artifactLocation": { "uri": "src/app.py" },
+                "artifactLocation": {
+                  "uri": "src/app.py"
+                },
                 "region": {
                   "startLine": 26,
                   "startColumn": 12,
@@ -132,28 +204,38 @@
               }
             }
           ],
-          "partialFingerprints": { "primaryLocationLineHash": "b2c3d4e5f6071829:1" }
+          "partialFingerprints": {
+            "primaryLocationLineHash": "b2c3d4e5f6071829:1"
+          }
         },
         {
           "ruleId": "sift.verify.path-traversal",
           "ruleIndex": 2,
           "level": "warning",
-          "message": { "text": "User input from request.args reaches os.path.join and open()." },
+          "message": {
+            "text": "User input from request.args reaches os.path.join and open()."
+          },
           "locations": [
             {
               "physicalLocation": {
-                "artifactLocation": { "uri": "src/app.py" },
+                "artifactLocation": {
+                  "uri": "src/app.py"
+                },
                 "region": {
                   "startLine": 32,
                   "startColumn": 10,
                   "endLine": 32,
                   "endColumn": 47,
-                  "snippet": { "text": "    with open(os.path.join(\"/data\", path)) as handle:" }
+                  "snippet": {
+                    "text": "    with open(os.path.join(\"/data\", path)) as handle:"
+                  }
                 }
               }
             }
           ],
-          "partialFingerprints": { "primaryLocationLineHash": "c3d4e5f607182930:1" }
+          "partialFingerprints": {
+            "primaryLocationLineHash": "c3d4e5f607182930:1"
+          }
         },
         {
           "ruleId": "sift.verify.suppressed-subprocess",
@@ -165,23 +247,65 @@
           "locations": [
             {
               "physicalLocation": {
-                "artifactLocation": { "uri": "src/app.py" },
+                "artifactLocation": {
+                  "uri": "src/app.py"
+                },
                 "region": {
                   "startLine": 38,
                   "startColumn": 12,
                   "endLine": 38,
                   "endColumn": 51,
-                  "snippet": { "text": "    return subprocess.check_output([\"ls\", \"-la\"])" }
+                  "snippet": {
+                    "text": "    return subprocess.check_output([\"ls\", \"-la\"])"
+                  }
                 }
               }
             }
           ],
-          "partialFingerprints": { "primaryLocationLineHash": "d4e5f60718293041:1" },
+          "partialFingerprints": {
+            "primaryLocationLineHash": "d4e5f60718293041:1"
+          },
           "suppressions": [
             {
               "kind": "external",
               "status": "accepted",
               "justification": "Constant argument list, no user input reaches this call."
+            }
+          ]
+        },
+        {
+          "ruleId": "sift.verify.suppressed-insource",
+          "ruleIndex": 4,
+          "level": "warning",
+          "message": {
+            "text": "Control: identical to the external-suppression case, but kind is inSource."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/app.py"
+                },
+                "region": {
+                  "startLine": 43,
+                  "startColumn": 12,
+                  "endLine": 43,
+                  "endColumn": 48,
+                  "snippet": {
+                    "text": "    return subprocess.check_output([\"pwd\"])  # nosem"
+                  }
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "primaryLocationLineHash": "e5f6071829304152:1"
+          },
+          "suppressions": [
+            {
+              "kind": "inSource",
+              "status": "accepted",
+              "justification": "nosem comment on the line."
             }
           ]
         }

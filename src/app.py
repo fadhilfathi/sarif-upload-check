@@ -36,3 +36,8 @@ def read_file():
 def already_reviewed_by_a_human():
     """Referenced by the result that arrives already suppressed."""
     return subprocess.check_output(["ls", "-la"])
+
+
+def suppressed_in_source():
+    """Referenced by the result suppressed with kind "inSource"."""
+    return subprocess.check_output(["pwd"])  # nosem

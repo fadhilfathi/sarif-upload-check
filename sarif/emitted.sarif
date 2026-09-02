@@ -83,6 +83,22 @@
                 ],
                 "precision": "low"
               }
+            },
+            {
+              "id": "sift.verify.suppressed-insource",
+              "name": "SuppressedInSource",
+              "shortDescription": {
+                "text": "subprocess call, suppressed with kind inSource"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "tags": [
+                  "security"
+                ],
+                "precision": "low"
+              }
             }
           ],
           "informationUri": "https://github.com/fadhilfathi/sift"
@@ -252,6 +268,42 @@
           ],
           "partialFingerprints": {
             "primaryLocationLineHash": "d4e5f60718293041:1"
+          }
+        },
+        {
+          "ruleId": "sift.verify.suppressed-insource",
+          "ruleIndex": 4,
+          "level": "warning",
+          "message": {
+            "text": "Control: identical to the external-suppression case, but kind is inSource."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/app.py"
+                },
+                "region": {
+                  "startLine": 43,
+                  "startColumn": 12,
+                  "endLine": 43,
+                  "endColumn": 48,
+                  "snippet": {
+                    "text": "    return subprocess.check_output([\"pwd\"])  # nosem"
+                  }
+                }
+              }
+            }
+          ],
+          "suppressions": [
+            {
+              "kind": "inSource",
+              "status": "accepted",
+              "justification": "nosem comment on the line."
+            }
+          ],
+          "partialFingerprints": {
+            "primaryLocationLineHash": "e5f6071829304152:1"
           }
         }
       ],
