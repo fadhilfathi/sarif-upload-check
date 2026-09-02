@@ -1,0 +1,109 @@
+name: Verify SARIF upload
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "sarif/emitted.sarif"
+      - "src/**"
+      - ".github/workflows/verify.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Upload, then read the alerts back
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Upload SIFT's emitted SARIF
+        id: upload
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          payload="$(gzip -c sarif/emitted.sarif | base64 -w0)"
+          response="$(gh api -X POST "repos/$GITHUB_REPOSITORY/code-scanning/sarifs" \
+            -f "commit_sha=$GITHUB_SHA" \
+            -f "ref=$GITHUB_REF" \
+            -f "sarif=$payload" \
+            -f "tool_name=sift-verification")"
+          echo "$response"
+          echo "id=$(echo "$response" | jq -r .id)" >> "$GITHUB_OUTPUT"
+
+      # A 202 only means the upload was accepted. It can still be processed into
+      # nothing, which is exactly the failure this repo exists to catch.
+      - name: Wait for processing to complete
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SARIF_ID: ${{ steps.upload.outputs.id }}
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 30); do
+            status="$(gh api "repos/$GITHUB_REPOSITORY/code-scanning/sarifs/$SARIF_ID" || true)"
+            state="$(echo "$status" | jq -r '.processing_status // "unknown"')"
+            echo "attempt $attempt: $state"
+            case "$state" in
+              complete) echo "$status" | jq '.'; exit 0 ;;
+              failed)   echo "$status" | jq '.'; echo "::error::SARIF processing failed"; exit 1 ;;
+            esac
+            sleep 5
+          done
+          echo "::error::timed out waiting for SARIF processing"
+          exit 1
+
+      - name: Read the alerts back and assert
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh api --paginate \
+            "repos/$GITHUB_REPOSITORY/code-scanning/alerts?tool_name=sift-verification&state=open" \
+            > open.json
+          gh api --paginate \
+            "repos/$GITHUB_REPOSITORY/code-scanning/alerts?tool_name=sift-verification&state=dismissed" \
+            > dismissed.json
+
+          echo "--- open ---";      jq -r '.[] | "\(.rule.id)  \(.most_recent_instance.location.path):\(.most_recent_instance.location.start_line)  \(.rule.security_severity_level // "-")"' open.json
+          echo "--- dismissed ---"; jq -r '.[] | "\(.rule.id)  \(.dismissed_reason // "-")"' dismissed.json
+
+          fail() { echo "::error::$1"; exit 1; }
+
+          # Three findings arrived unsuppressed and must be visible as open alerts.
+          [ "$(jq 'length' open.json)" = "3" ] || fail "expected 3 open alerts, got $(jq 'length' open.json)"
+
+          # The finding that arrived already suppressed must render as dismissed,
+          # not be silently dropped. A tool that loses someone else's suppression
+          # is as broken as one that invents its own.
+          [ "$(jq 'length' dismissed.json)" = "1" ] || fail "expected 1 dismissed alert, got $(jq 'length' dismissed.json)"
+
+          for rule in sift.verify.command-injection sift.verify.sql-injection sift.verify.path-traversal; do
+            jq -e --arg r "$rule" 'any(.[]; .rule.id == $r)' open.json >/dev/null \
+              || fail "missing open alert for $rule"
+          done
+          jq -e 'any(.[]; .rule.id == "sift.verify.suppressed-subprocess")' dismissed.json >/dev/null \
+            || fail "suppressed finding did not render as dismissed"
+
+          # Locations must survive the round trip, not just rule identity.
+          jq -e 'any(.[]; .rule.id == "sift.verify.command-injection"
+                          and .most_recent_instance.location.path == "src/app.py"
+                          and .most_recent_instance.location.start_line == 19)' open.json >/dev/null \
+            || fail "command-injection alert is not at src/app.py:19"
+          jq -e 'any(.[]; .rule.id == "sift.verify.sql-injection"
+                          and .most_recent_instance.location.start_line == 26)' open.json >/dev/null \
+            || fail "sql-injection alert is not at line 26"
+          jq -e 'any(.[]; .rule.id == "sift.verify.path-traversal"
+                          and .most_recent_instance.location.start_line == 32)' open.json >/dev/null \
+            || fail "path-traversal alert is not at line 32"
+
+          # Rule metadata must survive, or the alerts render without severity.
+          jq -e 'any(.[]; .rule.id == "sift.verify.command-injection"
+                          and .rule.security_severity_level == "critical")' open.json >/dev/null \
+            || fail "security-severity did not survive on command-injection"
+
+          echo "verified: 3 open, 1 dismissed, locations and severities intact"
