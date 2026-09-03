@@ -1,6 +1,6 @@
 # sarif-upload-check
 
-Verification target for [SIFT](https://github.com/fadhilfathi/sift)'s SARIF emitter.
+Verification target for [SIFT](https://github.com/fadhilfathi/sift-sast)'s SARIF emitter.
 
 SIFT must emit SARIF that GitHub Code Scanning actually accepts and renders.
 "The upload returned 202" is not evidence of that — a SARIF file can be accepted
